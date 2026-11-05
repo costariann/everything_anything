@@ -15,8 +15,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - internal_network
-    # In production, db is NOT published to host ports to prevent public network exposure
+      - app_network
 
   backend:
     build:
@@ -25,42 +24,55 @@ services:
     container_name: everythinganything_backend_prod
     restart: always
     ports:
-      - "4000:4000"
+      - "${BACKEND_PORT:-4000}:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-production_secure_password}@db:5432/${POSTGRES_DB:-everythinganything_prod}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${DOCKER_CORS_ORIGIN:-http://localhost:3000,http://localhost:3001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-dacostaobiriyeboah@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-something_secret@!!}
+      ADMIN_NAME: ${ADMIN_NAME:-Dacosta Obiri Yeboah}
+      ADMIN_PHONE: ${ADMIN_PHONE:-0248867139}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-everythinganything-fc7ee.firebasestorage.app}
+      FIREBASE_SERVICE_ACCOUNT_PATH: serviceAccountKey.json
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
+      - uploads_prod:/app/uploads
     depends_on:
       db:
         condition: service_healthy
     networks:
-      - internal_network
-      - public_network
+      - app_network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+        NEXT_PUBLIC_API_URL: ${DOCKER_API_URL:-http://localhost:4000/api/v1}
     container_name: everythinganything_frontend_prod
     restart: always
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${DOCKER_API_URL:-http://localhost:4000/api/v1}
+      INTERNAL_BACKEND_URL: http://backend:4000
     depends_on:
       - backend
     networks:
-      - public_network
+      - app_network
 
 volumes:
   pgdata_prod:
+  uploads_prod:
 
 networks:
-  internal_network:
+  app_network:
     driver: bridge
-  public_network:
-    driver: bridge
-

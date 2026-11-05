@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: everythinganything_dev
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
@@ -26,15 +26,27 @@ services:
     container_name: everythinganything_backend_dev
     restart: unless-stopped
     ports:
-      - "4000:4000"
+      - "${BACKEND_PORT:-4000}:4000"
     environment:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgresql://postgres:postgres@db:5432/everythinganything_dev
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: ${DOCKER_CORS_ORIGIN:-http://localhost:3000,http://localhost:3001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-dacostaobiriyeboah@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-something_secret@!!}
+      ADMIN_NAME: ${ADMIN_NAME:-Dacosta Obiri Yeboah}
+      ADMIN_PHONE: ${ADMIN_PHONE:-0248867139}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-everythinganything-fc7ee.firebasestorage.app}
+      FIREBASE_SERVICE_ACCOUNT_PATH: serviceAccountKey.json
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
+      - uploads_dev:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -48,10 +60,12 @@ services:
     container_name: everythinganything_frontend_dev
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${DOCKER_API_URL:-http://localhost:4000/api/v1}
+      INTERNAL_BACKEND_URL: http://backend:4000
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -63,8 +77,8 @@ services:
 
 volumes:
   pgdata_dev:
+  uploads_dev:
 
 networks:
   app_network:
     driver: bridge
-

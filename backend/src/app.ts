@@ -1,6 +1,8 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 import { env } from './config/env';
 import { checkDatabaseConnection } from './config/database';
 import { requestLogger } from './shared/middleware/requestLogger';
@@ -9,14 +11,36 @@ import { errorHandler } from './shared/middleware/errorHandler';
 import { sendSuccess } from './shared/utils/response';
 import { HealthCheckData } from './shared/types';
 
+// Feature route imports
+import { authRoutes } from './features/auth/auth.routes';
+import { categoryRoutes } from './features/categories/category.routes';
+import { brandRoutes } from './features/brands/brand.routes';
+import { productRoutes } from './features/products/product.routes';
+import { orderRoutes } from './features/orders/order.routes';
+import { inventoryRoutes } from './features/inventory/inventory.routes';
+import { adminRoutes } from './features/admin/admin.routes';
+import { mediaRoutes } from './features/media/media.routes';
+import { bannerRoutes } from './features/banners/banner.routes';
+
 export function createApp(): Application {
   const app = express();
 
   // Security headers & CORS
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+  );
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      },
       credentials: true,
     })
   );
@@ -24,6 +48,13 @@ export function createApp(): Application {
   // Request parsing
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Static uploads serving
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir));
 
   // Logging
   app.use(requestLogger);
@@ -59,8 +90,24 @@ export function createApp(): Application {
       },
     };
 
-    sendSuccess(res, healthData, isHealthy ? 'System is healthy' : 'Database connection is degraded', isHealthy ? 200 : 503);
+    sendSuccess(
+      res,
+      healthData,
+      isHealthy ? 'System is healthy' : 'Database connection is degraded',
+      isHealthy ? 200 : 503
+    );
   });
+
+  // Mount feature routes
+  v1Router.use('/auth', authRoutes);
+  v1Router.use('/categories', categoryRoutes);
+  v1Router.use('/brands', brandRoutes);
+  v1Router.use('/products', productRoutes);
+  v1Router.use('/orders', orderRoutes);
+  v1Router.use('/inventory', inventoryRoutes);
+  v1Router.use('/admin', adminRoutes);
+  v1Router.use('/media', mediaRoutes);
+  v1Router.use('/banners', bannerRoutes);
 
   // Mount API v1 router
   app.use('/api/v1', v1Router);
@@ -73,4 +120,3 @@ export function createApp(): Application {
 
   return app;
 }
-

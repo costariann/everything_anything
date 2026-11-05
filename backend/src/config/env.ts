@@ -14,6 +14,16 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default('4000'),
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/everythinganything_dev'),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  JWT_ACCESS_SECRET: z.string().default('everythinganything_access_jwt_secret_key_32_chars_long!'),
+  JWT_REFRESH_SECRET: z.string().default('everythinganything_refresh_jwt_secret_key_32_chars_long!'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  FIREBASE_STORAGE_BUCKET: z.string().default('everythinganything-fc7ee.firebasestorage.app'),
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().default('serviceAccountKey.json'),
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
+  CLOUDINARY_API_KEY: z.string().optional().default(''),
+  CLOUDINARY_API_SECRET: z.string().optional().default(''),
+  CLOUDINARY_URL: z.string().optional().default(''),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

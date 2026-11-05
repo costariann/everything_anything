@@ -1,19 +1,37 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    // In browser, always target backend on port 4000
+    const configured = process.env.NEXT_PUBLIC_API_URL;
+    if (configured && !configured.includes(':4001/api/v1')) {
+      return configured;
+    }
+    return 'http://localhost:4000/api/v1';
+  }
+  return process.env.INTERNAL_BACKEND_URL
+    ? `${process.env.INTERNAL_BACKEND_URL}/api/v1`
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+}
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
+  baseURL: getApiBaseUrl(),
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor
+// Request interceptor to attach JWT token if present and sync dynamic baseURL
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Inject headers or tokens when needed
+    if (typeof window !== 'undefined') {
+      config.baseURL = getApiBaseUrl();
+      const token = localStorage.getItem('everythinganything_token');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
     return config;
   },
   (error: AxiosError) => {
@@ -27,17 +45,8 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    // Standardized client-side error handling
-    if (error.response) {
-      console.error(`API Error [${error.response.status}]:`, error.response.data);
-    } else if (error.request) {
-      console.error('API Network Error: Server did not respond.');
-    } else {
-      console.error('API Request Setup Error:', error.message);
-    }
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
-

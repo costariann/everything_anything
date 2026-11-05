@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: everythinganything_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-everythinganything_db}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-everythinganything_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: everythinganything_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-everythinganything_db}
+      CORS_ORIGIN: ${DOCKER_CORS_ORIGIN:-http://localhost:3000,http://localhost:3001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-dacostaobiriyeboah@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-something_secret@!!}
+      ADMIN_NAME: ${ADMIN_NAME:-Dacosta Obiri Yeboah}
+      ADMIN_PHONE: ${ADMIN_PHONE:-0248867139}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-everythinganything-fc7ee.firebasestorage.app}
+      FIREBASE_SERVICE_ACCOUNT_PATH: serviceAccountKey.json
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${DOCKER_API_URL:-http://localhost:4000/api/v1}
+    container_name: everythinganything_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${DOCKER_API_URL:-http://localhost:4000/api/v1}
+      INTERNAL_BACKEND_URL: http://backend:4000
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+volumes:
+  pgdata:
+  uploads_data:
+
+networks:
+  app_network:
+    driver: bridge

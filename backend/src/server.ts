@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { env } from './config/env';
-import { pool, checkDatabaseConnection } from './config/database';
+import { prisma, checkDatabaseConnection } from './config/database';
 import { logger } from './shared/utils/logger';
 
 const app = createApp();
@@ -12,7 +12,7 @@ const server = app.listen(env.PORT, async () => {
   // Initial database check
   const dbStatus = await checkDatabaseConnection();
   if (dbStatus.connected) {
-    logger.info('✅ PostgreSQL connected successfully');
+    logger.info('✅ PostgreSQL connected successfully via Prisma');
   } else {
     logger.warn(`⚠️ PostgreSQL connection warning: ${dbStatus.message}`);
   }
@@ -25,11 +25,11 @@ async function gracefulShutdown(signal: string) {
   server.close(async () => {
     logger.info('HTTP server closed.');
     try {
-      await pool.end();
-      logger.info('PostgreSQL pool drained.');
+      await prisma.$disconnect();
+      logger.info('Prisma disconnected.');
       process.exit(0);
     } catch (err) {
-      logger.error('Error during PostgreSQL pool shutdown:', err);
+      logger.error('Error during Prisma disconnect:', err);
       process.exit(1);
     }
   });

@@ -1,16 +1,21 @@
-import { Pool } from 'pg';
-import { env } from './env';
+import { PrismaClient } from '@prisma/client';
 
-export const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+declare global {
+  // eslint-disable-next-line no-var
+  var prismaGlobal: PrismaClient | undefined;
+}
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client:', err);
-});
+export const prisma =
+  global.prismaGlobal ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  global.prismaGlobal = prisma;
+}
+
+export { BannerPosition, Prisma } from '@prisma/client';
 
 export interface DatabaseStatus {
   connected: boolean;
@@ -21,17 +26,12 @@ export interface DatabaseStatus {
 export async function checkDatabaseConnection(): Promise<DatabaseStatus> {
   const timestamp = new Date().toISOString();
   try {
-    const client = await pool.connect();
-    try {
-      await client.query('SELECT 1');
-      return {
-        connected: true,
-        message: 'PostgreSQL connection successful',
-        timestamp,
-      };
-    } finally {
-      client.release();
-    }
+    await prisma.$queryRaw`SELECT 1`;
+    return {
+      connected: true,
+      message: 'PostgreSQL & Prisma connection successful',
+      timestamp,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown database error';
     return {
@@ -41,4 +41,3 @@ export async function checkDatabaseConnection(): Promise<DatabaseStatus> {
     };
   }
 }
-
