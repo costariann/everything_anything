@@ -35,3 +35,16 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message = 'Resource conflict') {
+    super(message, 409);
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message = 'Too many requests, please try again later.') {
+    super(message, 429);
+  }
+}
+
+

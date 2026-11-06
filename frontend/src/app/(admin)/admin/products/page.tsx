@@ -11,6 +11,7 @@ import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Modal } from '../../../../components/ui/Modal';
 import { Select } from '../../../../components/ui/Select';
+import { formatPrice } from '../../../../lib/formatters';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -218,7 +219,7 @@ export default function AdminProductsPage() {
                     <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">{p.category?.name || '—'}</td>
                     <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">{p.brand?.name || '—'}</td>
                     <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                      ${p.basePrice.toFixed(2)}
+                      {formatPrice(p.basePrice)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -298,7 +299,7 @@ export default function AdminProductsPage() {
             </div>
 
             <Input
-              label="Base Retail Price ($)*"
+              label="Base Retail Price (GH₵)*"
               type="number"
               step="0.01"
               required
@@ -308,7 +309,7 @@ export default function AdminProductsPage() {
             />
 
             <Input
-              label="Compare At / Original Price ($)"
+              label="Compare At / Original Price (GH₵)"
               type="number"
               step="0.01"
               placeholder="129.99"

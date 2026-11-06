@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { adminService } from '../../../features/admin/adminService';
+import { formatPrice } from '../../../lib/formatters';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -53,8 +54,8 @@ export default function AdminDashboardPage() {
 
   const cards = [
     {
-      label: 'Total Revenue',
-      value: `$${metrics.totalRevenue.toFixed(2)}`,
+      label: 'Total Revenue (GHS)',
+      value: formatPrice(metrics.totalRevenue),
       icon: DollarSign,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20',
@@ -188,7 +189,7 @@ export default function AdminDashboardPage() {
 
                 <div className="flex items-center justify-between sm:justify-end gap-6">
                   <div className="text-right">
-                    <div className="font-bold text-slate-900 dark:text-white">${order.totalAmount.toFixed(2)}</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{formatPrice(order.totalAmount)}</div>
                     <div className="text-[10px] text-slate-400 dark:text-slate-500">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </div>

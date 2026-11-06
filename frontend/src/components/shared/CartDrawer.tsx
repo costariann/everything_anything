@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { X, Trash2, ShoppingBag, Plus, Minus, ArrowRight } from 'lucide-react';
 import { useCartStore } from '../../stores/cartStore';
+import { formatPrice } from '../../lib/formatters';
 
 export const CartDrawer: React.FC = () => {
   const { items, isDrawerOpen, closeDrawer, removeItem, updateQuantity, getSubtotal } =
@@ -86,7 +87,7 @@ export const CartDrawer: React.FC = () => {
                       {item.variantName}
                     </p>
                     <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                      ${item.price.toFixed(2)}
+                      {formatPrice(item.price)}
                     </div>
                   </div>
 
@@ -128,10 +129,10 @@ export const CartDrawer: React.FC = () => {
             <div className="border-t border-slate-200 dark:border-slate-800 p-6 bg-slate-50 dark:bg-slate-900/40 space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Subtotal:</span>
-                <span className="text-base font-black text-slate-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                <span className="text-base font-black text-slate-900 dark:text-white">{formatPrice(subtotal)}</span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Taxes & shipping calculated at checkout. Free shipping on orders over $100.
+                Dispatch delivery calculated at checkout. Free delivery on orders over GH₵ 500.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <Link

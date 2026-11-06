@@ -117,8 +117,10 @@ export interface Order {
     addressLine1: string;
     addressLine2?: string;
     city: string;
-    state: string;
-    postalCode: string;
+    state?: string;
+    region?: string;
+    postalCode?: string;
+    digitalAddress?: string;
     country: string;
     phone: string;
   };

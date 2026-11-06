@@ -12,8 +12,8 @@ export const Footer: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 border border-indigo-500/20">
               <Truck className="w-6 h-6" />
             </div>
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Free Express Shipping</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">On all orders over $100</p>
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Free Express Delivery</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Across Ghana on orders over GH₵ 500</p>
           </div>
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 border border-emerald-500/20">
@@ -43,9 +43,13 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <span className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              E
-            </span>
+            <div className="w-7 h-7 rounded-lg overflow-hidden bg-indigo-600 flex items-center justify-center shadow-sm border border-slate-200/80 dark:border-slate-800 flex-shrink-0">
+              <img
+                src="/logo.png"
+                alt="everythinganything Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
             <span className="font-extrabold text-slate-900 dark:text-white text-base">
               everything<span className="text-indigo-600 dark:text-indigo-400">anything</span>
             </span>

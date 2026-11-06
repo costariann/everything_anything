@@ -9,6 +9,8 @@ import { useAuthStore } from '../../../stores/authStore';
 import { orderService } from '../../../features/orders/orderService';
 import { Navbar } from '../../../components/shared/Navbar';
 import { Footer } from '../../../components/shared/Footer';
+import { CartDrawer } from '../../../components/shared/CartDrawer';
+import { formatPrice } from '../../../lib/formatters';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -139,7 +141,7 @@ export default function AccountPage() {
 
                   <div className="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-0 border-slate-200 dark:border-slate-800">
                     <div className="text-right">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">${o.totalAmount.toFixed(2)}</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{formatPrice(o.totalAmount)}</div>
                       <div className="text-[10px] text-slate-500 capitalize">{o.paymentStatus.toLowerCase()}</div>
                     </div>
                     <Link
@@ -157,6 +159,7 @@ export default function AccountPage() {
       </main>
 
       <Footer />
+      <CartDrawer />
     </div>
   );
 }

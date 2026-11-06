@@ -24,6 +24,10 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   CLOUDINARY_URL: z.string().optional().default(''),
+  CURRENCY_CODE: z.string().default('GHS'),
+  CURRENCY_SYMBOL: z.string().default('GH₵'),
+  PAYSTACK_SECRET_KEY: z.string().optional().default(''),
+  PAYSTACK_PUBLIC_KEY: z.string().optional().default(''),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

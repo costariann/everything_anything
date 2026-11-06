@@ -159,7 +159,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides = [] }) => {
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                <span>Free Shipping over $100</span>
+                <span>Free Delivery in Ghana over GH₵ 500</span>
               </div>
             </div>
           </div>

@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Trash2, ShoppingBag, ArrowRight, ShieldCheck, Truck, Plus, Minus } from 'lucide-react';
 import { useCartStore } from '../../../stores/cartStore';
+import { formatPrice } from '../../../lib/formatters';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, getSubtotal } = useCartStore();
   const subtotal = getSubtotal();
-  const shipping = subtotal >= 100 || subtotal === 0 ? 0 : 10;
+  const shipping = subtotal >= 500 || subtotal === 0 ? 0 : 35;
   const total = subtotal + shipping;
 
   return (
@@ -87,7 +88,7 @@ export default function CartPage() {
                       </Link>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.variantName}</p>
                       <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                        ${item.price.toFixed(2)} each
+                        {formatPrice(item.price)} each
                       </div>
                     </div>
                   </div>
@@ -115,7 +116,7 @@ export default function CartPage() {
 
                     <div className="text-right">
                       <div className="text-sm font-black text-slate-900 dark:text-white">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.price * item.quantity)}
                       </div>
                       <button
                         onClick={() => removeItem(item.variantPublicId)}
@@ -137,28 +138,28 @@ export default function CartPage() {
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                 <span>Subtotal</span>
-                <span className="text-slate-900 dark:text-white font-medium">${subtotal.toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-white font-medium">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                <span>Estimated Shipping</span>
+                <span>Estimated Dispatch (Ghana)</span>
                 <span className="text-slate-900 dark:text-white font-medium">
                   {shipping === 0 ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">Free</span>
                   ) : (
-                    `$${shipping.toFixed(2)}`
+                    formatPrice(shipping)
                   )}
                 </span>
               </div>
-              {subtotal < 100 && (
+              {subtotal < 500 && (
                 <p className="text-[11px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-500/20">
-                  Add ${(100 - subtotal).toFixed(2)} more to qualify for Free Shipping!
+                  Add {formatPrice(500 - subtotal)} more to qualify for Free Delivery across Ghana!
                 </p>
               )}
             </div>
 
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <span className="text-sm font-bold text-slate-900 dark:text-white">Total Amount</span>
-              <span className="text-xl font-black text-slate-900 dark:text-white">${total.toFixed(2)}</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white">{formatPrice(total)}</span>
             </div>
 
             <Link

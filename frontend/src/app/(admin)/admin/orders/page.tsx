@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { orderService } from '../../../../features/orders/orderService';
+import { formatPrice } from '../../../../lib/formatters';
 
 const statusOptions = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
@@ -107,7 +108,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 font-mono">{o.itemCount} item(s)</td>
                     <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                      ${o.totalAmount.toFixed(2)}
+                      {formatPrice(o.totalAmount)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span

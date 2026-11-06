@@ -3,6 +3,7 @@ import { orderController } from './order.controller';
 import { authGuard, optionalAuthGuard } from '../../shared/middleware/authGuard';
 import { roleGuard } from '../../shared/middleware/roleGuard';
 import { validateRequest } from '../../shared/middleware/validate';
+import { checkoutLimiter } from '../../shared/middleware/rateLimiter';
 import { createOrderSchema, updateOrderStatusSchema } from './order.validation';
 
 export const orderRoutes = Router();
@@ -10,6 +11,7 @@ export const orderRoutes = Router();
 // Storefront & Guest checkout (optionalAuthGuard attaches user if token is provided)
 orderRoutes.post(
   '/',
+  checkoutLimiter,
   optionalAuthGuard,
   validateRequest({ body: createOrderSchema }),
   orderController.create

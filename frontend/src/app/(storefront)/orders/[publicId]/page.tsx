@@ -2,19 +2,35 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Package, Truck, Clock, ArrowRight, MapPin } from 'lucide-react';
+import {
+  CheckCircle2,
+  Package,
+  Truck,
+  Clock,
+  ArrowRight,
+  MapPin,
+  CreditCard,
+  Smartphone,
+  ShieldCheck,
+} from 'lucide-react';
 import { orderService } from '../../../../features/orders/orderService';
+import { paymentService } from '../../../../features/payments/paymentService';
 import { Order } from '../../../../types';
+import { formatPrice } from '../../../../lib/formatters';
 
 export default function OrderConfirmationPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const publicId = params?.publicId as string;
+  const paystackRef = searchParams.get('reference') || searchParams.get('trxref');
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -23,6 +39,24 @@ export default function OrderConfirmationPage() {
       try {
         const data = await orderService.getOrderByPublicId(publicId);
         if (data) setOrder(data);
+
+        // If redirected from Paystack with a transaction reference, verify with backend
+        if (paystackRef && data && data.paymentStatus !== 'PAID') {
+          setVerifyingPayment(true);
+          try {
+            const verifyRes = await paymentService.verifyPaystack(paystackRef);
+            if (verifyRes.verified) {
+              setPaymentVerified(true);
+              // Refresh order data with updated PAID status
+              const refreshed = await orderService.getOrderByPublicId(publicId);
+              if (refreshed) setOrder(refreshed);
+            }
+          } catch (vErr) {
+            console.error('Paystack verification error:', vErr);
+          } finally {
+            setVerifyingPayment(false);
+          }
+        }
       } catch (err: any) {
         setError(err?.response?.data?.message || 'Could not locate order details.');
       } finally {
@@ -30,7 +64,7 @@ export default function OrderConfirmationPage() {
       }
     }
     loadOrder();
-  }, [publicId]);
+  }, [publicId, paystackRef]);
 
   if (loading) {
     return (
@@ -57,11 +91,11 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  // Stepper steps
+  // Stepper steps for delivery in Ghana
   const steps = [
-    { key: 'PENDING', label: 'Order Received', icon: Clock },
+    { key: 'PENDING', label: 'Order Confirmed', icon: Clock },
     { key: 'PROCESSING', label: 'Processing & Packed', icon: Package },
-    { key: 'SHIPPED', label: 'Dispatched & In Transit', icon: Truck },
+    { key: 'SHIPPED', label: 'Dispatched to Rider', icon: Truck },
     { key: 'DELIVERED', label: 'Delivered', icon: CheckCircle2 },
   ];
 
@@ -77,6 +111,28 @@ export default function OrderConfirmationPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      {/* Paystack Payment Verification Banner */}
+      {(paymentVerified || order.paymentStatus === 'PAID') && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs"
+        >
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div>
+            <span className="font-bold">Payment Confirmed via Paystack: </span>
+            <span>Your Mobile Money / Card payment was received successfully. We are now preparing your order for dispatch.</span>
+          </div>
+        </motion.div>
+      )}
+
+      {verifyingPayment && (
+        <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl p-4 flex items-center gap-3 text-indigo-800 dark:text-indigo-300 text-xs animate-pulse">
+          <Clock className="w-5 h-5 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+          <span>Verifying your Paystack payment confirmation...</span>
+        </div>
+      )}
+
       {/* Success Banner */}
       <motion.div
         initial={{ opacity: 0, scale: 0.97 }}
@@ -87,13 +143,13 @@ export default function OrderConfirmationPage() {
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
-          Order Confirmed
+          Order Successfully Placed
         </span>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Thank you for your purchase!
+          Medaase! Thank you for your order!
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          We have registered your order. You can bookmark this page anytime to track shipping progress.
+          Your order has been registered. You will receive updates via SMS / WhatsApp as the dispatch rider heads your way.
         </p>
         <div className="pt-2 font-mono text-sm text-indigo-600 dark:text-indigo-400 font-bold">
           Order Number: {order.orderNumber}
@@ -133,7 +189,15 @@ export default function OrderConfirmationPage() {
                       : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600'
                   }`}
                 >
-                  <Icon className={`w-6 h-6 mb-2 ${isCompleted ? 'text-emerald-600 dark:text-emerald-400' : isCurrent ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-600'}`} />
+                  <Icon
+                    className={`w-6 h-6 mb-2 ${
+                      isCompleted
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : isCurrent
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-400 dark:text-slate-600'
+                    }`}
+                  />
                   <span className="text-xs font-semibold block text-slate-900 dark:text-white">{step.label}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
                     {isCompleted ? 'Complete' : 'Pending'}
@@ -145,7 +209,7 @@ export default function OrderConfirmationPage() {
         )}
       </motion.div>
 
-      {/* Order Details & Items */}
+      {/* Order Details & Delivery Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Ordered Items */}
         <motion.div
@@ -163,11 +227,11 @@ export default function OrderConfirmationPage() {
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">{item.productName}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {item.variantName} • Qty: {item.quantity} × ${item.unitPrice.toFixed(2)}
+                    {item.variantName} • Qty: {item.quantity} × {formatPrice(item.unitPrice)}
                   </div>
                 </div>
                 <div className="font-mono font-bold text-slate-900 dark:text-white">
-                  ${item.totalPrice.toFixed(2)}
+                  {formatPrice(item.totalPrice)}
                 </div>
               </div>
             ))}
@@ -176,22 +240,28 @@ export default function OrderConfirmationPage() {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
             <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
               <span>Subtotal</span>
-              <span className="text-slate-900 dark:text-white">${order.subtotal.toFixed(2)}</span>
+              <span className="text-slate-900 dark:text-white font-medium">{formatPrice(order.subtotal)}</span>
             </div>
             <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-              <span>Shipping Fee</span>
+              <span>Dispatch Delivery</span>
               <span className="text-slate-900 dark:text-white">
-                {order.shippingFee === 0 ? <span className="text-emerald-600 dark:text-emerald-400 uppercase font-bold">Free</span> : `$${order.shippingFee.toFixed(2)}`}
+                {order.shippingFee === 0 ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 uppercase font-bold">Free</span>
+                ) : (
+                  formatPrice(order.shippingFee)
+                )}
               </span>
             </div>
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm font-bold text-slate-900 dark:text-white">
-              <span>Total Paid / Due</span>
-              <span className="text-lg font-black text-slate-900 dark:text-white">${order.totalAmount.toFixed(2)}</span>
+              <span>Total Amount</span>
+              <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                {formatPrice(order.totalAmount)}
+              </span>
             </div>
           </div>
         </motion.div>
 
-        {/* Customer & Shipping Summary */}
+        {/* Customer & Delivery Summary */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -201,30 +271,51 @@ export default function OrderConfirmationPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>Delivery Address</span>
+              <span>Delivery Location (Ghana)</span>
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1 pt-1 leading-relaxed">
               <div className="font-bold text-slate-900 dark:text-white">{order.shippingAddress.fullName}</div>
               <div>{order.shippingAddress.addressLine1}</div>
-              {order.shippingAddress.addressLine2 && <div>{order.shippingAddress.addressLine2}</div>}
+              {order.shippingAddress.digitalAddress && (
+                <div className="text-indigo-600 dark:text-indigo-400 font-mono text-[11px]">
+                  GPS: {order.shippingAddress.digitalAddress}
+                </div>
+              )}
               <div>
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+                {order.shippingAddress.city}, {order.shippingAddress.region || order.shippingAddress.state} Region
               </div>
-              <div>{order.shippingAddress.country}</div>
-              <div className="text-slate-500 dark:text-slate-400 pt-1">Phone: {order.shippingAddress.phone}</div>
+              <div className="font-semibold text-slate-900 dark:text-white">{order.shippingAddress.country || 'Ghana'}</div>
+              <div className="text-slate-500 dark:text-slate-400 pt-1">
+                Phone: <strong>{order.shippingAddress.phone}</strong>
+              </div>
             </div>
           </div>
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-3 text-xs shadow-sm">
-            <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider">Payment Information</div>
-            <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-              <span>Method:</span>
-              <span className="text-slate-900 dark:text-white font-medium">{order.paymentMethod.replace(/_/g, ' ')}</span>
+            <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Payment Details</span>
             </div>
             <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-              <span>Payment Status:</span>
-              <span className={`font-semibold ${order.paymentStatus === 'PAID' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                {order.paymentStatus}
+              <span>Method:</span>
+              <span className="text-slate-900 dark:text-white font-medium">
+                {order.paymentMethod === 'PAYSTACK'
+                  ? 'Paystack (MoMo / Card)'
+                  : order.paymentMethod === 'PAY_ON_DELIVERY' || order.paymentMethod === 'CASH_ON_DELIVERY'
+                  ? 'Pay on Delivery'
+                  : order.paymentMethod.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+              <span>Status:</span>
+              <span
+                className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                  order.paymentStatus === 'PAID'
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                }`}
+              >
+                {order.paymentStatus === 'PAID' ? 'PAID' : 'PENDING PAYMENT'}
               </span>
             </div>
           </div>

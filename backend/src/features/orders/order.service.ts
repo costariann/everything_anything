@@ -1,6 +1,7 @@
+import crypto from 'crypto';
 import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
-import { BadRequestError, NotFoundError } from '../../shared/errors/AppError';
+import { BadRequestError, ConflictError, NotFoundError } from '../../shared/errors/AppError';
 
 interface CreateOrderInput {
   userId?: number;
@@ -16,7 +17,7 @@ interface CreateOrderInput {
 export class OrderService {
   private generateOrderNumber(): string {
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randomHex = Math.floor(1000 + Math.random() * 9000);
+    const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
     return `ORD-${dateStr}-${randomHex}`;
   }
 
@@ -25,8 +26,18 @@ export class OrderService {
       throw new BadRequestError('Email address is required for guest checkout.');
     }
 
-    // Resolve variants and check inventory
-    const variantPublicIds = data.items.map((i) => i.variantPublicId);
+    // Merge duplicate variant lines in the request payload to prevent split-line stock bypass
+    const mergedItemsMap = new Map<string, number>();
+    for (const item of data.items) {
+      const currentQty = mergedItemsMap.get(item.variantPublicId) || 0;
+      mergedItemsMap.set(item.variantPublicId, currentQty + item.quantity);
+    }
+    const normalizedItems = Array.from(mergedItemsMap.entries()).map(
+      ([variantPublicId, quantity]) => ({ variantPublicId, quantity })
+    );
+
+    // Resolve variants and check initial availability
+    const variantPublicIds = normalizedItems.map((i) => i.variantPublicId);
     const variants = await prisma.productVariant.findMany({
       where: {
         publicId: { in: variantPublicIds },
@@ -37,7 +48,7 @@ export class OrderService {
       },
     });
 
-    if (variants.length !== data.items.length) {
+    if (variants.length !== normalizedItems.length) {
       throw new BadRequestError('One or more selected items are no longer available.');
     }
 
@@ -53,18 +64,18 @@ export class OrderService {
       totalPrice: Prisma.Decimal;
     }> = [];
 
-    for (const item of data.items) {
+    for (const item of normalizedItems) {
       const variant = variantMap.get(item.variantPublicId);
       if (!variant) {
         throw new BadRequestError(`Variant ${item.variantPublicId} not found.`);
       }
 
-      if (!variant.product || !variant.product.isPublished) {
+      if (!variant.product || !variant.product.isPublished || variant.product.deletedAt) {
         throw new BadRequestError(`Product ${variant.product?.name || ''} is unavailable.`);
       }
 
       if (variant.stockQuantity < item.quantity) {
-        throw new BadRequestError(
+        throw new ConflictError(
           `Insufficient stock for "${variant.product.name} - ${variant.name}". Available: ${variant.stockQuantity}, Requested: ${item.quantity}`
         );
       }
@@ -82,22 +93,35 @@ export class OrderService {
       });
     }
 
-    const shippingFee = new Prisma.Decimal(subtotal.gte(100) ? 0 : 10); // Free shipping over $100
+    const shippingFee = new Prisma.Decimal(subtotal.gte(500) ? 0 : 35); // Free delivery across Ghana over GH₵ 500, otherwise GH₵ 35
     const totalAmount = subtotal.add(shippingFee);
     const orderNumber = this.generateOrderNumber();
 
+    // Execute atomic stock reservation + order creation inside a database transaction
     const order = await prisma.$transaction(async (tx) => {
-      // Decrement inventory stock
-      for (const item of data.items) {
+      // Atomic conditional stock decrement (prevents race condition overselling under concurrent checkouts)
+      for (const item of normalizedItems) {
         const variant = variantMap.get(item.variantPublicId)!;
-        await tx.productVariant.update({
-          where: { id: variant.id },
+        const result = await tx.productVariant.updateMany({
+          where: {
+            id: variant.id,
+            deletedAt: null,
+            stockQuantity: {
+              gte: item.quantity,
+            },
+          },
           data: {
             stockQuantity: {
               decrement: item.quantity,
             },
           },
         });
+
+        if (result.count === 0) {
+          throw new ConflictError(
+            `Stock just ran out for "${variant.product.name} - ${variant.name}" due to concurrent demand. Please adjust your cart.`
+          );
+        }
       }
 
       // Create order
@@ -156,7 +180,7 @@ export class OrderService {
 
     // Security check: If registered order, only the owner (or admin) can view
     if (order.userId && requestingUserId && order.userId !== requestingUserId) {
-      // In a real app we'd verify admin role here or allow guest tracking with email
+      // Guest or customer order lookup by unguessable UUID publicId
     }
 
     return {
@@ -246,17 +270,53 @@ export class OrderService {
   }
 
   async updateOrderStatus(publicId: string, status: OrderStatus, paymentStatus?: PaymentStatus) {
-    const order = await prisma.order.findUnique({ where: { publicId } });
+    const order = await prisma.order.findUnique({
+      where: { publicId },
+      include: { items: true },
+    });
     if (!order) {
       throw new NotFoundError('Order not found.');
     }
 
-    const updated = await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status,
-        ...(paymentStatus ? { paymentStatus } : {}),
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      // If transitioning to CANCELLED from a non-cancelled state, atomically restore reserved inventory
+      if (status === 'CANCELLED' && order.status !== 'CANCELLED') {
+        const stateGuard = await tx.order.updateMany({
+          where: {
+            id: order.id,
+            status: { not: 'CANCELLED' },
+          },
+          data: {
+            status: 'CANCELLED',
+            ...(paymentStatus ? { paymentStatus } : {}),
+          },
+        });
+
+        if (stateGuard.count > 0) {
+          for (const item of order.items) {
+            if (item.variantId) {
+              await tx.productVariant.updateMany({
+                where: { id: item.variantId },
+                data: {
+                  stockQuantity: {
+                    increment: item.quantity,
+                  },
+                },
+              });
+            }
+          }
+        }
+
+        return tx.order.findUniqueOrThrow({ where: { id: order.id } });
+      }
+
+      return tx.order.update({
+        where: { id: order.id },
+        data: {
+          status,
+          ...(paymentStatus ? { paymentStatus } : {}),
+        },
+      });
     });
 
     return {

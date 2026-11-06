@@ -11,6 +11,7 @@ import { Product, Category, Banner } from '../../types';
 import { useCartStore } from '../../stores/cartStore';
 import { HeroSlider } from '../../components/storefront/HeroSlider';
 import { PromoBanner } from '../../components/storefront/PromoBanner';
+import { formatPrice } from '../../lib/formatters';
 
 export default function HomePage() {
   const [heroSlides, setHeroSlides] = useState<Banner[]>([]);
@@ -223,11 +224,11 @@ export default function HomePage() {
                       <div>
                         <div className="flex items-baseline gap-2">
                           <span className="text-base font-extrabold text-slate-900 dark:text-white">
-                            ${product.basePrice.toFixed(2)}
+                            {formatPrice(product.basePrice)}
                           </span>
                           {product.compareAtPrice && (
                             <span className="text-xs text-slate-400 line-through">
-                              ${product.compareAtPrice.toFixed(2)}
+                              {formatPrice(product.compareAtPrice)}
                             </span>
                           )}
                         </div>
@@ -272,10 +273,10 @@ export default function HomePage() {
               <Truck className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-              Complimentary Express Shipping
+              Complimentary Express Delivery
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-              Free door-to-door delivery on all qualifying purchases over $100.
+              Free door-to-door delivery across Ghana on orders over GH₵ 500.
             </p>
           </div>
 

@@ -40,6 +40,10 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
+      CURRENCY_CODE: ${CURRENCY_CODE:-GHS}
+      CURRENCY_SYMBOL: ${CURRENCY_SYMBOL:-GH₵}
     volumes:
       - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
       - uploads_prod:/app/uploads

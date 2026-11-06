@@ -8,6 +8,7 @@ import { ShoppingBag, Check, ShieldCheck, Truck, RotateCcw, AlertCircle, ArrowLe
 import { productService } from '../../../../features/products/productService';
 import { Product, ProductVariant } from '../../../../types';
 import { useCartStore } from '../../../../stores/cartStore';
+import { formatPrice } from '../../../../lib/formatters';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -186,15 +187,15 @@ export default function ProductDetailPage() {
           {/* Price */}
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-black text-slate-900 dark:text-white">
-              ${currentPrice.toFixed(2)}
+              {formatPrice(currentPrice)}
             </span>
             {product.compareAtPrice && product.compareAtPrice > currentPrice && (
               <>
                 <span className="text-base text-slate-400 dark:text-slate-500 line-through">
-                  ${product.compareAtPrice.toFixed(2)}
+                  {formatPrice(product.compareAtPrice)}
                 </span>
                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  Save ${(product.compareAtPrice - currentPrice).toFixed(2)}
+                  Save {formatPrice(product.compareAtPrice - currentPrice)}
                 </span>
               </>
             )}
@@ -229,7 +230,7 @@ export default function ProductDetailPage() {
                     >
                       <div className="font-semibold truncate">{v.name}</div>
                       <div className="flex items-center justify-between text-[10px] mt-1 text-slate-500 dark:text-slate-400">
-                        <span>${v.price.toFixed(2)}</span>
+                        <span>{formatPrice(v.price)}</span>
                         <span>{isStockOut ? 'Out of stock' : `${v.stockQuantity} left`}</span>
                       </div>
                     </button>
@@ -283,7 +284,7 @@ export default function ProductDetailPage() {
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-4 h-4" /> Add to Cart • ${(currentPrice * quantity).toFixed(2)}
+                    <ShoppingBag className="w-4 h-4" /> Add to Cart • {formatPrice(currentPrice * quantity)}
                   </>
                 )}
               </button>

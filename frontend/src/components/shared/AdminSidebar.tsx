@@ -34,10 +34,14 @@ export const AdminSidebar: React.FC = () => {
       <div>
         {/* Brand */}
         <div className="h-16 px-6 flex items-center border-b border-slate-200 dark:border-slate-800">
-          <Link href="/admin" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-extrabold text-sm">
-              E
-            </span>
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl overflow-hidden shadow-sm shadow-indigo-600/30 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center bg-indigo-600 flex-shrink-0">
+              <img
+                src="/logo.png"
+                alt="everythinganything Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
             <div>
               <span className="font-bold text-sm text-slate-900 dark:text-white block leading-tight">Admin Console</span>
               <span className="text-[10px] text-slate-500 block">everythinganything</span>

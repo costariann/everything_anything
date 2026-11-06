@@ -67,10 +67,14 @@ function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         className="sm:mx-auto sm:w-full sm:max-w-md text-center"
       >
-        <Link href="/" className="inline-flex items-center gap-2 mb-6">
-          <span className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-indigo-600/30">
-            E
-          </span>
+        <Link href="/" className="inline-flex items-center gap-2.5 mb-6 group">
+          <div className="w-9 h-9 rounded-xl overflow-hidden bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/30 border border-slate-200/80 dark:border-slate-800 group-hover:scale-105 transition-transform">
+            <img
+              src="/logo.png"
+              alt="everythinganything Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
           <span className="font-extrabold text-xl text-slate-900 dark:text-white tracking-tight">
             everything<span className="text-indigo-600 dark:text-indigo-400">anything</span>
           </span>

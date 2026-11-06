@@ -6,6 +6,7 @@ import fs from 'fs';
 import { env } from './config/env';
 import { checkDatabaseConnection } from './config/database';
 import { requestLogger } from './shared/middleware/requestLogger';
+import { globalApiLimiter } from './shared/middleware/rateLimiter';
 import { notFoundHandler } from './shared/middleware/notFoundHandler';
 import { errorHandler } from './shared/middleware/errorHandler';
 import { sendSuccess } from './shared/utils/response';
@@ -21,9 +22,13 @@ import { inventoryRoutes } from './features/inventory/inventory.routes';
 import { adminRoutes } from './features/admin/admin.routes';
 import { mediaRoutes } from './features/media/media.routes';
 import { bannerRoutes } from './features/banners/banner.routes';
+import { paymentRoutes } from './features/payments/payment.routes';
 
 export function createApp(): Application {
   const app = express();
+
+  // Trust reverse proxy (Docker / Nginx / Cloudflare) for accurate client IP detection
+  app.set('trust proxy', 1);
 
   // Security headers & CORS
   app.use(
@@ -64,8 +69,9 @@ export function createApp(): Application {
     sendSuccess(res, { message: 'everythinganything API is running' });
   });
 
-  // API v1 Router
+  // API v1 Router (protected by Global API Rate Limiter)
   const v1Router = express.Router();
+  v1Router.use(globalApiLimiter);
 
   v1Router.get('/', (_req: Request, res: Response) => {
     sendSuccess(res, {
@@ -108,6 +114,7 @@ export function createApp(): Application {
   v1Router.use('/admin', adminRoutes);
   v1Router.use('/media', mediaRoutes);
   v1Router.use('/banners', bannerRoutes);
+  v1Router.use('/payments', paymentRoutes);
 
   // Mount API v1 router
   app.use('/api/v1', v1Router);

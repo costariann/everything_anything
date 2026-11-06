@@ -10,6 +10,7 @@ import { categoryService } from '../../../features/categories/categoryService';
 import { brandService } from '../../../features/brands/brandService';
 import { Product, Category, Brand } from '../../../types';
 import { useCartStore } from '../../../stores/cartStore';
+import { formatPrice } from '../../../lib/formatters';
 
 function ProductsContent() {
   const router = useRouter();
@@ -329,11 +330,11 @@ function ProductsContent() {
                         <div>
                           <div className="flex items-baseline gap-2">
                             <span className="text-base font-black text-slate-900 dark:text-white">
-                              ${product.basePrice.toFixed(2)}
+                              {formatPrice(product.basePrice)}
                             </span>
                             {product.compareAtPrice && (
                               <span className="text-xs text-slate-400 line-through">
-                                ${product.compareAtPrice.toFixed(2)}
+                                {formatPrice(product.compareAtPrice)}
                               </span>
                             )}
                           </div>
